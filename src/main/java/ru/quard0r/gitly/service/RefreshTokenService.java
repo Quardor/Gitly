@@ -32,9 +32,9 @@ public class RefreshTokenService {
         return token;
     }
 
-    public Optional<String> findEmailByToken(String token) {
-        String email = redisTemplate.opsForValue().get(PREFIX + token);
-        return Optional.ofNullable(email);
+    public Optional<String> findUsernameByToken(String token) {
+        String username = redisTemplate.opsForValue().get(PREFIX + token);
+        return Optional.ofNullable(username);
     }
 
     public void deleteByToken(String token) {

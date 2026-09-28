@@ -53,7 +53,7 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         Person person = personRepository
-                .findByEmailOrUsername(request.username(), request.username())
+                .findByEmailOrUsername(request.login(), request.login())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.password(), person.getPassword())) {
@@ -64,7 +64,7 @@ public class AuthService {
     }
 
     public AuthResponse refresh(String refreshToken) {
-        String username = refreshTokenService.findEmailByToken(refreshToken)
+        String username = refreshTokenService.findUsernameByToken(refreshToken)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid refresh token"));
 
         Person person = personRepository.findByUsername(username)
@@ -78,7 +78,8 @@ public class AuthService {
                 .build();
     }
 
-    private AuthResponse issueTokens(Person person) {
+    private AuthResponse issueTokens
+            (Person person) {
         return AuthResponse.builder()
                 .accessToken(jwtService.generateAccessToken(person))
                 .refreshToken(refreshTokenService.createRefreshToken(person.getUsername()))
