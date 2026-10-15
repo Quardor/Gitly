@@ -1,10 +1,13 @@
 package ru.quard0r.gitly.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.quard0r.gitly.dto.request.LoginRequest;
@@ -12,18 +15,21 @@ import ru.quard0r.gitly.dto.request.RegisterRequest;
 import ru.quard0r.gitly.dto.response.AuthResponse;
 import ru.quard0r.gitly.exception.CredentialsAlreadyExistsException;
 import ru.quard0r.gitly.exception.InvalidCredentialsException;
+import ru.quard0r.gitly.security.JwtService;
 import ru.quard0r.gitly.service.AuthService;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AuthController")
 class AuthControllerTest {
 
@@ -32,6 +38,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -66,6 +78,19 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/register with invalid body → 400")
+    void registerWithInvalidBodyShouldReturn400() throws Exception {
+        RegisterRequest request = new RegisterRequest("", "not-an-email", "123");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).register(any());
+    }
+
+    @Test
     @DisplayName("POST /api/auth/login → 200 + tokens")
     void loginShouldReturnTokens() throws Exception {
         LoginRequest request = new LoginRequest("john@example.com", "password123");
@@ -95,6 +120,19 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/login with blank fields → 400")
+    void loginWithBlankFieldsShouldReturn400() throws Exception {
+        LoginRequest request = new LoginRequest("", "");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).login(any());
+    }
+
+    @Test
     @DisplayName("POST /api/auth/refresh → 200 + new tokens")
     void refreshShouldReturnNewTokens() throws Exception {
         AuthResponse response = new AuthResponse("new-access", "new-refresh");
@@ -118,5 +156,38 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("refreshToken", "invalid"))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/refresh with missing token → 400")
+    void refreshWithMissingTokenShouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).refresh(anyString());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/logout → 204")
+    void logoutShouldReturn204() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", "some-token"))))
+                .andExpect(status().isNoContent());
+
+        verify(authService).logout("some-token");
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/logout with missing token → 400")
+    void logoutWithMissingTokenShouldReturn400() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).logout(anyString());
     }
 }

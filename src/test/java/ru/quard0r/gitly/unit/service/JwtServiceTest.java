@@ -25,7 +25,7 @@ class JwtServiceTest {
         String secret = "change-me-super-secret-key-at-least-32-bytes-long!!";
         SecretKey jwtSecretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         jwtService = new JwtService(jwtSecretKey);
-        ReflectionTestUtils.setField(jwtService, "accessExpiration", 900_000L);
+        ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", 900_000L);
     }
 
     @Test
@@ -40,7 +40,7 @@ class JwtServiceTest {
         String token = jwtService.generateAccessToken(person);
 
         assertThat(token).isNotBlank();
-        assertThat(jwtService.extractUsername(token)).isEqualTo("john@example.com");
+        assertThat(jwtService.extractUsername(token)).isEqualTo("john");
     }
 
     @Test
@@ -54,6 +54,6 @@ class JwtServiceTest {
 
         String token = jwtService.generateAccessToken(person);
 
-        assertThat(jwtService.extractUsername(token)).isEqualTo("test@example.com");
+        assertThat(jwtService.extractUsername(token)).isEqualTo("test");
     }
 }

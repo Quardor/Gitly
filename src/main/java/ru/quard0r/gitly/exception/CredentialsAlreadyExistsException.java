@@ -11,6 +11,7 @@ public class CredentialsAlreadyExistsException extends BadRequestException {
         super(message);
     }
 
+    @Override
     public HttpStatus getHttpStatus() {
         return STATUS;
     }

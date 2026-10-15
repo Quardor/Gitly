@@ -1,11 +1,9 @@
 package ru.quard0r.gitly.service;
 
-import jakarta.persistence.*;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import ru.quard0r.gitly.entity.Person;
 
 import java.time.Duration;
 import java.util.Optional;
