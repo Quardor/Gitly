@@ -119,7 +119,7 @@ public class AuthServiceTest {
         void shouldThrowWhenUsernameExists() {
             RegisterRequest request = new RegisterRequest("john", "john@example.com","pass123");
             when(personRepository.existsByEmail(request.email())).thenReturn(false);
-            when(personRepository.existsByUsername(request.email())).thenReturn(true);
+            when(personRepository.existsByUsername(request.username())).thenReturn(true);
 
             assertThatThrownBy(() -> authService.register(request))
                     .isInstanceOf(CredentialsAlreadyExistsException.class);
@@ -152,7 +152,7 @@ public class AuthServiceTest {
                     .thenReturn(Optional.of(person));
             when(passwordEncoder.matches(request.password(), person.getPassword())).thenReturn(true);
             when(jwtService.generateAccessToken(person)).thenReturn("access-token");
-            when(refreshTokenService.createRefreshToken(person.getEmail())).thenReturn("refresh-token");
+            when(refreshTokenService.createRefreshToken(person.getUsername())).thenReturn("refresh-token");
 
             AuthResponse response = authService.login(request);
 
@@ -169,7 +169,7 @@ public class AuthServiceTest {
                     .thenReturn(Optional.of(person));
             when(passwordEncoder.matches(request.password(), person.getPassword())).thenReturn(true);
             when(jwtService.generateAccessToken(person)).thenReturn("access-token");
-            when(refreshTokenService.createRefreshToken(person.getEmail())).thenReturn("refresh-token");
+            when(refreshTokenService.createRefreshToken(person.getUsername())).thenReturn("refresh-token");
 
             AuthResponse response = authService.login(request);
 
@@ -243,6 +243,19 @@ public class AuthServiceTest {
 
             assertThatThrownBy(() -> authService.refresh(token))
                     .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("logout")
+    class Logout {
+
+        @Test
+        @DisplayName("should delete refresh token")
+        void shouldDeleteRefreshToken() {
+            authService.logout("refresh-token");
+
+            verify(refreshTokenService).deleteByToken("refresh-token");
         }
     }
 }

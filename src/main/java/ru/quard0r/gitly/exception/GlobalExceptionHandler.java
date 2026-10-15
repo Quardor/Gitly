@@ -1,12 +1,16 @@
 package ru.quard0r.gitly.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.quard0r.gitly.dto.response.ErrorResponse;
 import ru.quard0r.gitly.exception.base.HttpException;
-import ru.quard0r.gitly.exception.base.ServerException;
+
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -14,5 +18,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler
     private ResponseEntity<ErrorResponse> exceptionHandler(HttpException e) {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage()), e.getHttpStatus());
+    }
+
+    @ExceptionHandler
+    private ResponseEntity<ErrorResponse> exceptionHandler(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        return new ResponseEntity<>(new ErrorResponse(message), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
+    private ResponseEntity<ErrorResponse> exceptionHandler(HttpMessageNotReadableException e) {
+        return new ResponseEntity<>(new ErrorResponse("malformed request body"), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
+    private ResponseEntity<ErrorResponse> exceptionHandler(DataIntegrityViolationException e) {
+        return new ResponseEntity<>(new ErrorResponse("data integrity violation"), HttpStatus.CONFLICT);
     }
 }
